@@ -1,0 +1,14 @@
+{
+  "latitude": -31.97,
+  "longitude": -64.93,
+  "timezone": "America/Argentina/Cordoba",
+  "daily_units": {"time": "iso8601", "precipitation_sum": "mm", "wind_speed_10m_max": "km/h", "wind_gusts_10m_max": "km/h", "temperature_2m_max": "°C", "temperature_2m_min": "°C"},
+  "daily": {
+    "time": ["2021-01-01", "2021-01-02", "2021-01-03"],
+    "precipitation_sum": [0.1, 4.5, 0.0],
+    "wind_speed_10m_max": [8.4, 14.5, 10.0],
+    "wind_gusts_10m_max": [41.8, 84.6, 30.2],
+    "temperature_2m_max": [17.8, 16.3, 20.1],
+    "temperature_2m_min": [11.1, 10.0, 9.5]
+  }
+}
