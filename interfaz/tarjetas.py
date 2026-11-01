@@ -21,10 +21,8 @@ from interfaz import comun as c
 
 EVENTOS_INDEPENDENCIA = ["lluvia", "viento_fuerte", "temp_extrema", "lluvia_ayer"]
 LETRA = dict(zip(EVENTOS_INDEPENDENCIA, "ABCD"))
-COLOR_RESULTADO = {"Ninguno (apto)": c.VERDE, "A": c.AZUL, "B": c.GRIS, "C": c.OCRE,
-                   "A + B": "#6E8FAE", "A + C": "#8C6F5A", "B + C": "#B7B08F",
-                   "A + B + C": c.ROJO}
 CANTIDAD_RANKING = 5
+ALTURA_GRAFICO = 340
 
 
 def _metrica_grupo(etiqueta: str, nombre: str, r: Resultado) -> None:
@@ -44,7 +42,7 @@ def fila_metricas(df: pd.DataFrame) -> None:
     with columnas[1]:
         zona = grupo_mas_probable(df, "apto", "zona")
         if zona:
-            _metrica_grupo("Zona con más días aptos", c.NOMBRE_ZONA[zona[0]], zona[1])
+            _metrica_grupo("Zona con más días aptos", c.NOMBRE_CORTO_ZONA[zona[0]], zona[1])
     with columnas[2]:
         mes = grupo_mas_probable(df, "apto", "mes")
         if mes:
@@ -74,6 +72,7 @@ def tarjeta_frecuencias(df: pd.DataFrame) -> None:
         fig.update_traces(hovertemplate="%{x}, %{fullData.name}: %{y:.1%} "
                           "(%{customdata[0]} de %{customdata[1]} días)<extra></extra>")
         c.estilo(fig, "Mes", "Frecuencia relativa", porcentaje=True)
+        fig.update_layout(height=ALTURA_GRAFICO)
         st.plotly_chart(fig, width="stretch")
         st.caption(texto_frecuencia(c.NOMBRE_EVENTO[evento], frecuencia_relativa(df[evento])))
 
@@ -85,18 +84,22 @@ def _etiqueta_resultado(fila: pd.Series) -> str:
 
 
 def tarjeta_espacio_muestral(df: pd.DataFrame) -> None:
-    """Torta de los 8 resultados elementales del clima de un día."""
+    """Barras horizontales de la frecuencia de los 8 resultados elementales del clima de un día."""
     with st.container(border=True):
         st.subheader("Los 8 resultados posibles")
         t = espacio_muestral(df)
         t["Resultado"] = t.apply(_etiqueta_resultado, axis=1)
-        t = t[t["casos"] > 0]
-        fig = px.pie(t, names="Resultado", values="casos", hole=0.4,
-                     color="Resultado", color_discrete_map=COLOR_RESULTADO)
-        fig.update_traces(textinfo="percent", hovertemplate="%{label}: %{value} días "
-                          "(%{percent})<extra></extra>", sort=False)
-        c.estilo(fig)
-        fig.update_layout(legend={"orientation": "h"})
+        t = t.sort_values("frecuencia_relativa")
+        fig = go.Figure(go.Bar(
+            x=t["frecuencia_relativa"], y=t["Resultado"], orientation="h",
+            marker_color=[c.VERDE if r == "apto" else c.ROJO for r in t["resultado"]],
+            text=[pct(v) for v in t["frecuencia_relativa"]], textposition="outside",
+            customdata=t["casos"],
+            hovertemplate="%{y}: %{text} (%{customdata} días)<extra></extra>",
+        ))
+        c.estilo(fig, "Frecuencia relativa", "")
+        fig.update_xaxes(tickformat=".0%", range=[0, max(t["frecuencia_relativa"].max() * 1.2, 0.1)])
+        fig.update_layout(height=ALTURA_GRAFICO + 95)
         st.plotly_chart(fig, width="stretch")
         st.caption(texto_espacio_muestral(frecuencia_relativa(df["apto"])))
 
@@ -124,6 +127,7 @@ def tarjeta_mapa_calor(df: pd.DataFrame) -> None:
             hovertemplate="%{y}, %{x}: %{text} (%{customdata} días)<extra></extra>",
         ))
         c.estilo(fig, "Mes", "Zona")
+        fig.update_layout(height=ALTURA_GRAFICO + 60)
         st.plotly_chart(fig, width="stretch")
         st.caption(texto_mapa_calor(m))
 
@@ -140,14 +144,15 @@ def tarjeta_ranking(df: pd.DataFrame) -> None:
         t = pd.concat([mejores, peores])
         mostrar = pd.DataFrame({
             "Puesto": t["Puesto"],
-            "Zona": t["zona"].map(c.NOMBRE_ZONA),
+            "Zona": t["zona"].map(c.NOMBRE_CORTO_ZONA),
             "Mes": t["mes"].map(lambda m: c.MESES[m - 1].capitalize()),
             "P(apto)": t["probabilidad"].map(pct),
-            "Días aptos": t["favorables"].map(c.entero),
-            "Días totales": t["totales"].map(c.entero),
-            "Aviso": t["totales"].map(lambda n: f"Menos de {MIN_CASOS} casos"
-                                      if n < MIN_CASOS else ""),
+            "Días aptos": [f"{c.entero(f)} de {c.entero(n)}"
+                           for f, n in zip(t["favorables"], t["totales"])],
         })
+        if (t["totales"] < MIN_CASOS).any():
+            mostrar["Aviso"] = t["totales"].map(lambda n: f"< {MIN_CASOS} casos"
+                                                if n < MIN_CASOS else "")
         c.tabla(mostrar)
         st.caption(texto_recomendacion(ranking))
 
@@ -164,11 +169,12 @@ def tarjeta_convergencia(df: pd.DataFrame) -> None:
                        step=100, key="n_sorteos")
         r = simular(df[evento], n, SEMILLA)
         fig = go.Figure(go.Scattergl(x=r.curva["n"], y=r.curva["frecuencia_acumulada"],
-                                     mode="lines", line={"color": c.VERDE},
+                                     mode="lines", line={"color": c.OSCURO},
                                      name="Frecuencia acumulada"))
-        fig.add_hline(y=r.probabilidad_registro, line_dash="dash", line_color=c.OCRE,
+        fig.add_hline(y=r.probabilidad_registro, line_dash="dash", line_color=c.ROJO,
                       annotation_text=f"Registro: {pct(r.probabilidad_registro)}")
         c.estilo(fig, "Sorteos acumulados (N)", "Frecuencia relativa acumulada", porcentaje=True)
+        fig.update_layout(height=ALTURA_GRAFICO + 190)
         st.plotly_chart(fig, width="stretch")
         st.caption(texto_simulacion(r, c.NOMBRE_EVENTO[evento]))
 
@@ -180,10 +186,10 @@ def tarjeta_independencia(df: pd.DataFrame) -> None:
         m = matriz_independencia(df, EVENTOS_INDEPENDENCIA)
         m["par"] = [f"{LETRA[a]}–{LETRA[b]}" for a, b in zip(m["a"], m["b"])]
         fig = go.Figure([
-            go.Bar(name="P(A ∩ B)", x=m["par"], y=m["p_ab"], marker_color=c.VERDE),
-            go.Bar(name="P(A)·P(B)", x=m["par"], y=m["producto"], marker_color=c.OCRE),
+            go.Bar(name="P(A ∩ B)", x=m["par"], y=m["p_ab"], marker_color=c.OSCURO),
+            go.Bar(name="P(A)·P(B)", x=m["par"], y=m["producto"], marker_color=c.CLARO),
         ])
-        fig.update_layout(barmode="group")
+        fig.update_layout(barmode="group", height=260)
         c.estilo(fig, "Par de eventos", "Probabilidad", porcentaje=True)
         st.plotly_chart(fig, width="stretch")
         mostrar = pd.DataFrame({
@@ -192,22 +198,31 @@ def tarjeta_independencia(df: pd.DataFrame) -> None:
             "P(A)·P(B)": m["producto"].map(pct),
             "Diferencia": m["diferencia"].map(lambda d: f"{c.numero(d * 100)} puntos"),
             "Casos": m["casos"].map(c.entero),
-            "Veredicto": m["independientes"].map({True: "Independientes",
-                                                  False: "No independientes"}),
+            "¿Independientes?": m["independientes"].map({True: "Sí", False: "No"}),
         })
         c.tabla(mostrar)
         leyenda = texto_leyenda_eventos(LETRA, c.NOMBRE_CORTO)
         st.caption(f"{leyenda}. " + texto_matriz_independencia(m, EPSILON_INDEPENDENCIA))
 
 
+COLUMNAS_CRUDAS = {
+    "zona": "Zona", "fecha": "Fecha", "precipitacion_mm": "Precipitación (mm)",
+    "viento_kmh": "Viento máx. (km/h)", "racha_kmh": "Racha máx. (km/h)",
+    "tmax_c": "Temp. máx. (°C)", "tmin_c": "Temp. mín. (°C)",
+}
+
+
 def tarjeta_datos(df: pd.DataFrame) -> None:
     """Tabla de datos crudos filtrados, con su fuente y rango."""
     with st.container(border=True):
         st.subheader("Datos crudos")
-        crudo = df[COLUMNAS_BASE].copy()
-        crudo["zona"] = crudo["zona"].map(c.NOMBRE_ZONA)
-        crudo["fecha"] = crudo["fecha"].dt.strftime("%d/%m/%Y")
-        c.tabla(crudo)
+        crudo = df[COLUMNAS_BASE].assign(zona=df["zona"].map(c.NOMBRE_ZONA))
+        crudo = crudo.rename(columns=COLUMNAS_CRUDAS)
+        numericas = [n for k, n in COLUMNAS_CRUDAS.items() if k not in ("zona", "fecha")]
+        # El Styler solo cambia cómo se ve (coma decimal); el orden sigue siendo numérico.
+        estilo = crudo.style.format({**dict.fromkeys(numericas, "{:.1f}"),
+                                     "Fecha": "{:%d/%m/%Y}"}, decimal=",")
+        c.tabla(estilo)
         desde, hasta = df["fecha"].min(), df["fecha"].max()
         st.caption(f"{c.entero(len(df))} días entre el {desde:%d/%m/%Y} y el {hasta:%d/%m/%Y}. "
                    + c.FUENTE)

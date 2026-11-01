@@ -20,19 +20,19 @@ if df is None:
 
 t.fila_metricas(df)
 
-ancha, angosta = st.columns([2, 1])
+ancha, angosta = st.columns([5, 3])
 with ancha:
     t.tarjeta_frecuencias(df)
 with angosta:
     t.tarjeta_espacio_muestral(df)
 
-ancha, angosta = st.columns([2, 1])
+ancha, angosta = st.columns([5, 3])
 with ancha:
     t.tarjeta_mapa_calor(df)
 with angosta:
     t.tarjeta_ranking(df)
 
-ancha, angosta = st.columns([2, 1])
+ancha, angosta = st.columns([5, 3])
 with ancha:
     t.tarjeta_convergencia(df)
 with angosta:

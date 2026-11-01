@@ -47,8 +47,13 @@ CONDICION_EVENTO: dict[str, str] = {
     "adverso": "el día es adverso",
 }
 
-VERDE, OCRE, AZUL, ROJO, GRIS = "#2F6B4F", "#B5832B", "#3F6C8F", "#A8452F", "#7A857E"
-PALETA = [VERDE, OCRE, AZUL, ROJO, GRIS]
+# Verde y rojo significan "apto" y "adverso"; las zonas usan colores que no se confunden con ellos.
+VERDE, ROJO = "#2F6B4F", "#A8452F"
+OSCURO, CLARO = "#4A5A52", "#B8C2BC"
+PALETA = ["#3F6C8F", "#D9A441", "#7D5BA6", "#C4588A", "#7A857E"]
+NOMBRE_CORTO_ZONA: dict[str, str] = {"champaqui": "Champaquí", "uritorco": "Uritorco",
+                                     "condorito": "Condorito", "pan_de_azucar": "Pan de Azúcar",
+                                     "los_gigantes": "Los Gigantes"}
 COLOR_ZONA: dict[str, str] = {z.slug: PALETA[i] for i, z in enumerate(ZONAS)}
 COLOR_ZONA_NOMBRE: dict[str, str] = {NOMBRE_ZONA[slug]: col for slug, col in COLOR_ZONA.items()}
 
@@ -179,8 +184,8 @@ def estilo(fig: go.Figure, titulo_x: str = "", titulo_y: str = "", porcentaje: b
     return fig
 
 
-def tabla(df: pd.DataFrame) -> None:
-    """Muestra una tabla sin índice."""
+def tabla(df: "pd.DataFrame | pd.io.formats.style.Styler") -> None:
+    """Muestra una tabla (o un Styler) sin índice."""
     st.dataframe(df, hide_index=True, width="stretch")
 
 
