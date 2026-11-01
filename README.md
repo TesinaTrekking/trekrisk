@@ -25,11 +25,11 @@ streamlit run app.py             # interfaz web, se abre en http://localhost:850
 pytest                           # pruebas de core/
 ```
 
-Los datos ya vienen guardados en `data/`, por lo que la app funciona **sin internet**. La descarga es una acción explícita: botón "Descargar o actualizar datos" en la pantalla Datos.
+Los datos ya vienen guardados en `data/`, por lo que la app funciona **sin internet**. Son datos de archivo: la interfaz no descarga ni actualiza nada. `core/api.py` queda como registro de cómo se obtuvieron.
 
-### Barra lateral
+### Tablero
 
-Los filtros se aplican igual en todas las pantallas: zonas, rango de fechas, umbrales y semilla del sorteo.
+La app es un único tablero. Arriba se eligen las **zonas** (se pueden comparar varias) y el rango de fechas; en la barra lateral se editan los umbrales.
 
 | Umbral | Valor por defecto | Significado |
 | --- | --- | --- |
@@ -38,28 +38,23 @@ Los filtros se aplican igual en todas las pantallas: zonas, rango de fechas, umb
 | Calor | 32 °C | temperatura máxima ≥ umbral es calor extremo |
 | Helada | 0 °C | temperatura mínima ≤ umbral es helada |
 
-Un día es **apto** si no hay lluvia, ni viento fuerte, ni temperatura extrema (calor o helada). El botón "Restablecer umbrales" vuelve a los valores por defecto. La semilla por defecto es 42.
+Un día es **apto** si no hay lluvia, ni viento fuerte, ni temperatura extrema (calor o helada). El botón "Restablecer umbrales" vuelve a los valores por defecto.
 
-### Pantallas
+| Fila | Contenido |
+| --- | --- |
+| 1 | Métricas: día apto, zona y mes con más días aptos, lluvia, viento fuerte y temperatura extrema |
+| 2 | Frecuencia de un evento por mes y zona; los 8 resultados posibles |
+| 3 | Mapa de calor de P(apto) por zona y mes; mejores y peores combinaciones |
+| 4 | Experimento aleatorio (remuestreo de días reales); independencia entre eventos |
+| 5 | Datos crudos |
 
-| N.º | Pantalla | Contenido de la materia |
-| --- | --- | --- |
-| 1 | Datos | descarga, estado de la caché, validación, tipos de variable, estadística descriptiva |
-| 2 | Eventos y espacio muestral | experimento aleatorio, espacio muestral (8 resultados), eventos |
-| 3 | Frecuencias relativas | frecuencia relativa por zona, mes o estación |
-| 4 | Probabilidad clásica y frecuencial | sorteo equiprobable y estabilización de la frecuencia |
-| 5 | Probabilidad condicional | P(A \| B) y mapa de calor zona × mes |
-| 6 | Independencia | los 6 pares entre A, B, C y D |
-| 7 | Experimento aleatorio | remuestreo de días reales y convergencia |
-| 8 | Recomendación | mejores y peores combinaciones zona-mes, mejor estación |
-
-Cada resultado muestra su fórmula, la cantidad de casos que lo respaldan (con una advertencia si son menos de 30) y una interpretación en texto.
+Cada resultado muestra la cantidad de casos que lo respaldan (con una advertencia si son menos de 30) y una línea de interpretación. La teoría de cada tema se desarrolla en la presentación.
 
 ## Estructura
 
 ```
-app.py                  # entrada de Streamlit: navegación y barra lateral
-paginas/                # una pantalla por archivo
+app.py                  # entrada de Streamlit: barra lateral y tablero
+interfaz/               # formato, filtros y tarjetas del tablero
 core/                   # lógica pura, sin importar Streamlit
   config.py  api.py  datos.py  eventos.py
   probabilidad.py  simulacion.py  interpretacion.py

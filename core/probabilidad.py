@@ -77,6 +77,18 @@ def frecuencias_por_grupo(df: pd.DataFrame, evento: str, por: str | list[str]) -
     return tabla
 
 
+def grupo_mas_probable(df: pd.DataFrame, evento: str, por: str) -> tuple[object, Resultado] | None:
+    """Grupo con mayor frecuencia relativa del evento, con sus casos. None si no hay datos.
+
+    Ante un empate gana el grupo con más casos totales.
+    """
+    tabla = frecuencias_por_grupo(df, evento, por)
+    if tabla.empty:
+        return None
+    mejor = tabla.sort_values(["frecuencia_relativa", "totales"], ascending=False).iloc[0]
+    return mejor[por], _resultado(int(mejor["favorables"]), int(mejor["totales"]))
+
+
 def probabilidad_clasica_fecha(df: pd.DataFrame, evento: str) -> Resultado:
     """Se sortea un día del registro y todos son equiprobables: P = favorables / posibles."""
     return frecuencia_relativa(df[evento])

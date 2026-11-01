@@ -34,7 +34,7 @@ def cargar_clima(carpeta: str = "data", zonas: list[str] | None = None) -> pd.Da
         ruta = Path(carpeta) / f"clima_{slug}.csv"
         if not ruta.exists():
             raise FileNotFoundError(
-                f"Falta el archivo {ruta}. Descargá los datos desde la pantalla Datos."
+                f"Falta el archivo {ruta}. Los CSV de data/ deben estar versionados en el repositorio."
             )
         partes.append(pd.read_csv(ruta, parse_dates=["fecha"]))
     if not partes:

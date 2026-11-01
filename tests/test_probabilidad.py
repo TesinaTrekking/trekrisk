@@ -8,6 +8,7 @@ import pytest
 from core.probabilidad import (
     Resultado,
     convergencia,
+    grupo_mas_probable,
     frecuencia_relativa,
     frecuencias_por_grupo,
     independencia,
@@ -158,3 +159,19 @@ def test_ranking_zona_mes_ordenado():
     assert list(r.columns) == ["zona", "mes", "favorables", "totales", "probabilidad"]
     assert r["probabilidad"].tolist() == [1.0, 1.0, 0.5]
     assert (r.iloc[0]["zona"], r.iloc[0]["mes"], r.iloc[0]["totales"]) == ("b", 2, 2)
+
+
+def test_grupo_mas_probable_devuelve_el_grupo_y_sus_casos():
+    df = pd.DataFrame({
+        "zona": ["a", "a", "b", "b", "b"],
+        "apto": [True, False, True, True, False],
+    })
+    grupo, r = grupo_mas_probable(df, "apto", "zona")
+    assert grupo == "b"
+    assert (r.favorables, r.totales) == (2, 3)
+    assert r.valor == pytest.approx(2 / 3)
+
+
+def test_grupo_mas_probable_sin_datos():
+    vacio = pd.DataFrame({"zona": [], "apto": []})
+    assert grupo_mas_probable(vacio, "apto", "zona") is None

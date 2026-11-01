@@ -1,4 +1,4 @@
-"""Piezas compartidas por las pantallas: barra lateral, datos filtrados y gráficos."""
+"""Piezas compartidas por el tablero: filtros, datos filtrados, formato y estilo de gráficos."""
 
 from datetime import date
 from pathlib import Path
@@ -7,14 +7,14 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from core.config import FECHA_FIN, FECHA_INICIO, SEMILLA_DEFECTO, ZONAS, Umbrales
+from core.config import FECHA_FIN, FECHA_INICIO, ZONAS, Umbrales
 from core.datos import cargar_clima
 from core.eventos import marcar_eventos
-from core.interpretacion import pct
+from core.interpretacion import pct, texto_poca_muestra
 from core.probabilidad import Resultado
 
 CARPETA_DATOS = str(Path(__file__).resolve().parent.parent / "data")
-FUENTE = "Fuente de los datos: [Open-Meteo](https://open-meteo.com/) (reanálisis ERA5)."
+FUENTE = "Fuente: [Open-Meteo](https://open-meteo.com/) (reanálisis ERA5), datos de archivo."
 
 NOMBRE_ZONA: dict[str, str] = {z.slug: z.nombre for z in ZONAS}
 MESES: list[str] = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio",
@@ -49,6 +49,8 @@ CONDICION_EVENTO: dict[str, str] = {
 
 VERDE, OCRE, AZUL, ROJO, GRIS = "#2F6B4F", "#B5832B", "#3F6C8F", "#A8452F", "#7A857E"
 PALETA = [VERDE, OCRE, AZUL, ROJO, GRIS]
+COLOR_ZONA: dict[str, str] = {z.slug: PALETA[i] for i, z in enumerate(ZONAS)}
+COLOR_ZONA_NOMBRE: dict[str, str] = {NOMBRE_ZONA[slug]: col for slug, col in COLOR_ZONA.items()}
 
 _CLAVES_UMBRAL = {
     "u_lluvia": "lluvia_mm",
@@ -79,22 +81,15 @@ def _inicializar_estado() -> None:
     st.session_state.setdefault(
         "rango_fechas", (date.fromisoformat(FECHA_INICIO), date.fromisoformat(FECHA_FIN))
     )
-    st.session_state.setdefault("semilla", SEMILLA_DEFECTO)
     for clave, campo in _CLAVES_UMBRAL.items():
         st.session_state.setdefault(clave, getattr(Umbrales(), campo))
 
 
 def barra_lateral() -> None:
-    """Dibuja los filtros comunes. Los valores quedan en st.session_state."""
+    """Dibuja los umbrales en la barra lateral. Los valores quedan en st.session_state."""
     _inicializar_estado()
     with st.sidebar:
-        st.header("Filtros")
-        st.multiselect("Zonas", [z.slug for z in ZONAS], key="zonas_sel",
-                       format_func=NOMBRE_ZONA.get)
-        st.date_input("Rango de fechas", key="rango_fechas",
-                      min_value=date.fromisoformat(FECHA_INICIO),
-                      max_value=date.fromisoformat(FECHA_FIN))
-        st.subheader("Umbrales")
+        st.header("Umbrales")
         st.number_input("Lluvia (mm) ≥", min_value=0.0, step=0.5, key="u_lluvia",
                         help="Un día con precipitación ≥ este valor es lluvioso.")
         st.number_input("Viento (km/h) ≥", min_value=0.0, step=1.0, key="u_viento",
@@ -104,10 +99,21 @@ def barra_lateral() -> None:
         st.number_input("Helada (°C) ≤", step=1.0, key="u_helada",
                         help="Temperatura mínima ≤ este valor es helada.")
         st.button("Restablecer umbrales", on_click=_restablecer_umbrales)
-        st.subheader("Sorteo")
-        st.number_input("Semilla", min_value=0, step=1, key="semilla")
-        st.divider()
-        st.caption(FUENTE)
+        st.caption("Un día es apto si no hay lluvia, ni viento fuerte, ni temperatura extrema "
+                   "(calor o helada).")
+
+
+def filtros_superiores() -> None:
+    """Dibuja el selector de zonas y el rango de fechas arriba del tablero."""
+    _inicializar_estado()
+    col_zonas, col_fechas = st.columns([3, 1])
+    with col_zonas:
+        st.pills("Zonas a comparar", [z.slug for z in ZONAS], selection_mode="multi",
+                 key="zonas_sel", format_func=NOMBRE_ZONA.get)
+    with col_fechas:
+        st.date_input("Rango de fechas", key="rango_fechas",
+                      min_value=date.fromisoformat(FECHA_INICIO),
+                      max_value=date.fromisoformat(FECHA_FIN))
 
 
 def umbrales_actuales() -> Umbrales:
@@ -115,12 +121,6 @@ def umbrales_actuales() -> Umbrales:
     _inicializar_estado()
     return Umbrales(**{campo: float(st.session_state[clave])
                        for clave, campo in _CLAVES_UMBRAL.items()})
-
-
-def semilla_actual() -> int:
-    """Semilla vigente según la barra lateral."""
-    _inicializar_estado()
-    return int(st.session_state["semilla"])
 
 
 @st.cache_data(show_spinner=False)
@@ -145,7 +145,7 @@ def datos_filtrados() -> pd.DataFrame | None:
 
     rango = st.session_state["rango_fechas"]
     if not isinstance(rango, (tuple, list)) or len(rango) != 2:
-        st.warning("Elegí una fecha de inicio y una de fin en la barra lateral.")
+        st.warning("Elegí una fecha de inicio y una de fin.")
         return None
     desde, hasta = pd.Timestamp(rango[0]), pd.Timestamp(rango[1])
     filtrado = df[df["zona"].isin(st.session_state["zonas_sel"])
@@ -161,7 +161,7 @@ def metrica(etiqueta: str, r: Resultado) -> None:
     st.metric(etiqueta, pct(r.valor), delta=f"{entero(r.favorables)} de {entero(r.totales)} casos",
               delta_color="off", delta_arrow="off")
     if r.poca_muestra:
-        st.caption("⚠️ Menos de 30 casos.")
+        st.caption(texto_poca_muestra())
 
 
 def estilo(fig: go.Figure, titulo_x: str = "", titulo_y: str = "", porcentaje: bool = False) -> go.Figure:

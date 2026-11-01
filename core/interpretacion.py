@@ -109,11 +109,49 @@ def texto_simulacion(r: ResultadoSimulacion, nombre_evento: str) -> str:
     if _vacio(r.frecuencia_final):
         return f"No hay días en el registro para simular {nombre_evento}."
     diferencia = r.frecuencia_final - r.probabilidad_registro
-    texto = (f"Con {_entero(r.n)} sorteos con reposición de días reales (semilla {r.semilla}), "
+    texto = (f"Con {_entero(r.n)} sorteos con reposición de días reales, "
              f"la frecuencia de {nombre_evento} fue {pct(r.frecuencia_final)}, frente a "
              f"{pct(r.probabilidad_registro)} en el registro: {_puntos(diferencia)} puntos de "
              "diferencia. Al aumentar N, la frecuencia tiende a la del registro.")
     return f"{texto} {_ADVERTENCIA}" if r.n < MIN_CASOS else texto
+
+
+def texto_poca_muestra() -> str:
+    """Aviso corto para métricas que se basan en pocos casos."""
+    return f"⚠️ Menos de {MIN_CASOS} casos."
+
+
+def texto_leyenda_eventos(letras: dict[str, str], nombres: dict[str, str]) -> str:
+    """Leyenda de letras y eventos: 'A = lluvia · B = viento fuerte'."""
+    return " · ".join(f"{letra} = {nombres[evento]}" for evento, letra in letras.items())
+
+
+def texto_espacio_muestral(apto: Resultado) -> str:
+    """Explica las letras de los 8 resultados y la frecuencia del día apto."""
+    return ("A: lluvia, B: viento fuerte, C: temperatura extrema. "
+            + texto_frecuencia("un día apto", apto))
+
+
+def texto_matriz_independencia(matriz: pd.DataFrame, epsilon: float = EPSILON_INDEPENDENCIA) -> str:
+    """Resume cuántos pares de eventos se consideran independientes."""
+    if matriz.empty:
+        return "No hay pares de eventos para evaluar."
+    independientes = int(matriz["independientes"].sum())
+    texto = (f"{independientes} de {len(matriz)} pares de eventos se consideran independientes "
+             f"(diferencia menor que ε = {_puntos(epsilon)} puntos).")
+    return f"{texto} {_ADVERTENCIA}" if matriz["casos"].min() < MIN_CASOS else texto
+
+
+def texto_mapa_calor(matriz: pd.DataFrame) -> str:
+    """Avisa cuántas celdas zona-mes del mapa de calor tienen pocos casos."""
+    if matriz.empty:
+        return "No hay datos para armar el mapa de calor."
+    pocas = int((matriz["totales"] < MIN_CASOS).sum())
+    texto = "Cada celda es la probabilidad de un día apto en esa zona y ese mes."
+    if pocas:
+        texto += (f" {pocas} de {len(matriz)} celdas tienen menos de {MIN_CASOS} casos y "
+                  "conviene interpretarlas con cuidado.")
+    return texto
 
 
 def _combinacion(fila: pd.Series) -> str:

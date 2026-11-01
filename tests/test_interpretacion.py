@@ -4,7 +4,9 @@ import pandas as pd
 
 from core.interpretacion import (
     pct, texto_clasica, texto_condicional, texto_frecuencia, texto_frecuencial,
-    texto_independencia, texto_recomendacion, texto_simulacion,
+    texto_independencia, texto_espacio_muestral, texto_leyenda_eventos, texto_mapa_calor,
+    texto_matriz_independencia, texto_poca_muestra, texto_recomendacion,
+    texto_simulacion,
 )
 from core.probabilidad import Resultado, ResultadoIndependencia
 from core.simulacion import simular
@@ -65,10 +67,10 @@ def test_independencia_veredictos():
     assert ADVERTENCIA in texto_independencia("A", "B", _indep(0.1, 0.1, True, casos=10), 0.02)
 
 
-def test_simulacion_incluye_n_semilla_y_comparacion():
+def test_simulacion_incluye_n_y_comparacion_sin_semilla():
     r = simular(pd.Series([True] * 40 + [False] * 60), 1000, 42)
     t = texto_simulacion(r, "la lluvia")
-    assert "1.000" in t and "semilla 42" in t and "40,0 %" in t and ADVERTENCIA not in t
+    assert "1.000" in t and "semilla" not in t and "40,0 %" in t and ADVERTENCIA not in t
     assert ADVERTENCIA in texto_simulacion(simular(pd.Series([True, False]), 10, 1), "la lluvia")
 
 
@@ -83,3 +85,30 @@ def test_recomendacion_mejor_y_peor():
     chico = ranking.assign(totales=[10, 155])
     assert ADVERTENCIA in texto_recomendacion(chico)
     assert "No hay datos" in texto_recomendacion(ranking.iloc[0:0])
+
+
+def test_matriz_independencia_cuenta_pares():
+    m = pd.DataFrame({"independientes": [True, True, False, True, False, True],
+                      "casos": [1000] * 6})
+    t = texto_matriz_independencia(m, 0.02)
+    assert "4 de 6" in t and "2,0 puntos" in t and ADVERTENCIA not in t
+    chico = m.assign(casos=[10, 1000, 1000, 1000, 1000, 1000])
+    assert ADVERTENCIA in texto_matriz_independencia(chico, 0.02)
+
+
+def test_mapa_calor_avisa_celdas_con_pocos_casos():
+    m = pd.DataFrame({"totales": [100, 20, 5, 300]})
+    t = texto_mapa_calor(m)
+    assert "2 de 4 celdas" in t
+    assert "menos de 30 casos" in t
+    assert "menos de 30" not in texto_mapa_calor(pd.DataFrame({"totales": [100, 300]}))
+    assert "No hay datos" in texto_mapa_calor(pd.DataFrame({"totales": []}))
+
+
+def test_textos_auxiliares_del_tablero():
+    assert "30" in texto_poca_muestra()
+    assert texto_leyenda_eventos({"lluvia": "A", "viento_fuerte": "B"},
+                                 {"lluvia": "lluvia", "viento_fuerte": "viento"}) \
+        == "A = lluvia · B = viento"
+    t = texto_espacio_muestral(Resultado(0.5, 1500, 3000))
+    assert "A: lluvia" in t and "1.500 de 3.000" in t
