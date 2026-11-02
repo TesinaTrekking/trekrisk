@@ -4,7 +4,7 @@ Aplicación web en Streamlit que responde una pregunta práctica de un guía de 
 
 > ¿Qué probabilidad hay de que un día sea **apto** para salir, según el clima real de cada punto de trekking de Córdoba y la época del año?
 
-Trabajo integrador final de Estadística y Probabilidad Aplicada (ISAU / Universidad Provincial de Córdoba, Sede Villa Carlos Paz). La especificación completa está en [`SPEC.md`](SPEC.md).
+Trabajo integrador final de Estadística y Probabilidad Aplicada (ISAUI / Universidad Provincial de Córdoba, Sede Villa Carlos Paz). La especificación completa está en [`SPEC.md`](SPEC.md).
 
 Se usan **solo datos climáticos reales**: 5 años (2021-01-01 a 2025-12-31) de 5 zonas, 1.826 días por zona (9.130 filas). No se simulan datos; el único "sorteo" es el remuestreo con reposición de días reales.
 
