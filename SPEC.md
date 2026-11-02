@@ -1,6 +1,6 @@
 # SPEC – Análisis probabilístico del clima para planificar salidas de trekking
 
-**Asignatura:** Estadística y Probabilidad Aplicada (ISAUI / Universidad Provincial de Córdoba, Sede Villa Carlos Paz).
+**Asignatura:** Estadística y Probabilidad Aplicada (ISAU / Universidad Provincial de Córdoba, Sede Villa Carlos Paz).
 **Estado:** todas las decisiones están cerradas. Este documento se implementa por fases (sección 12).
 
 ---
@@ -13,7 +13,7 @@ Aplicación web en Streamlit que responde una pregunta práctica de un guía de 
 
 Se usan **solo datos climáticos reales** de Open-Meteo (5 años, 5 zonas). No hay datos simulados.
 
-El sistema debe aplicar estos contenidos de la materia, cada uno resuelto en el tablero con su resultado, sus casos y una interpretación en texto (la teoría se desarrolla en la presentación):
+El sistema debe aplicar estos contenidos de la materia, cada uno resuelto en `core/` con su resultado, sus casos y una interpretación en texto (la teoría se desarrolla en la presentación). El tablero muestra los que tienen visualización propia; la probabilidad clásica y el sorteo equiprobable quedan en `core/` sin pantalla (ver `docs/adr/0001-tablero-unico.md`):
 
 1. Experimento aleatorio
 2. Espacio muestral
@@ -182,6 +182,8 @@ class Resultado:
 def frecuencia_relativa(evento: pd.Series, universo: pd.Series | None = None) -> Resultado
 def frecuencias_por_grupo(df: pd.DataFrame, evento: str, por: str | list[str]) -> pd.DataFrame
     # columnas: grupo(s), favorables, totales, frecuencia_relativa
+def grupo_mas_probable(df: pd.DataFrame, evento: str, por: str) -> tuple[object, Resultado] | None
+    # grupo con mayor frecuencia del evento; desempata por más casos; None si no hay datos
 def probabilidad_clasica_fecha(df: pd.DataFrame, evento: str) -> Resultado     # cada fecha del registro equiprobable
 def probabilidad_clasica_uniforme(opciones: Sequence, favorables: Collection) -> Resultado  # sorteo de zona o mes
 def probabilidad_frecuencial(evento: pd.Series) -> Resultado
@@ -212,6 +214,11 @@ def texto_condicional(nombre_a: str, nombre_b: str, cond: Resultado, base: Resul
 def texto_independencia(nombre_a: str, nombre_b: str, r: ResultadoIndependencia, epsilon: float) -> str
 def texto_simulacion(r: ResultadoSimulacion, nombre_evento: str) -> str
 def texto_recomendacion(ranking: pd.DataFrame) -> str
+def texto_poca_muestra() -> str                       # aviso corto de menos de 30 casos
+def texto_leyenda_eventos(letras: dict[str, str], nombres: dict[str, str]) -> str
+def texto_espacio_muestral(apto: Resultado) -> str
+def texto_mapa_calor(matriz: pd.DataFrame) -> str
+def texto_matriz_independencia(matriz: pd.DataFrame, epsilon: float = EPSILON_INDEPENDENCIA) -> str
 ```
 
 **Reglas de las funciones:**
@@ -237,23 +244,23 @@ Decisión registrada en `docs/adr/0001-tablero-unico.md`. La interfaz es un úni
 
 | control | ubicación | valor por defecto |
 | --- | --- | --- |
-| Zonas (`st.pills`, selección múltiple, mínimo 1) | arriba del tablero | las 5 |
+| Zonas (`st.pills`, selección múltiple) | arriba del tablero | las 5 |
 | Rango de fechas | arriba del tablero | `2021-01-01` a `2025-12-31` |
 | Umbrales de lluvia, viento, calor y helada | barra lateral | 1,0 mm, 30 km/h, 32 °C, 0 °C |
 | Botón "Restablecer umbrales" | barra lateral | vuelve a los valores por defecto |
 
 La semilla del sorteo es la constante `SEMILLA = 42` de `core/config.py`; no se muestra ni se edita en la interfaz. Los gráficos usan un color por zona.
 
-Si el filtro deja cero filas, mostrar un único aviso (`st.warning`) en lugar de las tarjetas y no calcular.
+Si el filtro deja cero filas (por ejemplo, sin zonas elegidas) o el rango de fechas está incompleto, mostrar un único aviso (`st.warning`) en lugar de las tarjetas y no calcular. Si falta un CSV, mostrar un `st.error`.
 
 **Contenido del tablero:**
 
 | Fila | Contenido | Funciones de `core/` |
 | --- | --- | --- |
-| 1 | Métricas: P(día apto) general, zona con mayor P(apto), mes con mayor P(apto), P(lluvia), P(viento fuerte), P(calor); cada una con favorables y total | `probabilidad_frecuencial`, `ranking_zona_mes` |
-| 2 | Barras de P(evento) por mes con color por zona y selector de evento; torta de los 8 resultados del espacio muestral | `frecuencias_por_grupo`, `espacio_muestral` |
+| 1 | Métricas: P(día apto) general, zona con mayor P(apto), mes con mayor P(apto), P(lluvia), P(viento fuerte), P(temperatura extrema); cada una con favorables y total | `frecuencia_relativa`, `grupo_mas_probable` |
+| 2 | Barras de P(evento) por mes con color por zona y selector de evento; barras horizontales de los 8 resultados del espacio muestral (verde el apto, rojo los adversos) | `frecuencias_por_grupo`, `espacio_muestral` |
 | 3 | Mapa de calor zona × mes de P(apto); ranking de mejores y peores combinaciones zona-mes | `matriz_condicional`, `ranking_zona_mes` |
-| 4 | Curva de convergencia de la simulación (con selector de evento y de N); matriz de independencia de los 6 pares | `simular`, `matriz_independencia` |
+| 4 | Curva de convergencia de la simulación (con selector de evento y de N, de 100 a 100.000 sorteos); independencia de los 6 pares: barras de P(A ∩ B) frente a P(A)·P(B) y tabla con la diferencia y el veredicto | `simular`, `matriz_independencia` |
 | 5 | Tabla de datos crudos filtrada, con fuente (Open-Meteo, archivo) y rango de fechas | `cargar_clima` |
 
 **Patrón de cada tarjeta** (`st.container(border=True)`): título, gráfico o tabla, y una línea de interpretación (`st.caption`, texto de `core/interpretacion.py`). Cada número incluye sus casos favorables y totales, con aviso si hay menos de 30. No se muestran fórmulas.
@@ -285,7 +292,7 @@ Gráficos con Plotly, colores coherentes con el tema, ejes rotulados y porcentaj
 | RNF-05 | Claridad del código | Funciones pequeñas y puras, type hints, docstrings en español |
 | RNF-06 | Separación de capas | `core/` no importa Streamlit |
 | RNF-07 | Pruebas | Las funciones de `core/` tienen pruebas con casos calculados a mano |
-| RNF-08 | Usabilidad | Interfaz en español, cada resultado con fórmula e interpretación |
+| RNF-08 | Usabilidad | Interfaz en español, cada resultado con interpretación (las fórmulas van en la presentación) |
 | RNF-09 | Manejo de errores | Mensajes claros si falta un CSV, falla la API o P(B) = 0 |
 | RNF-10 | Trazabilidad | Cada resultado muestra cuántos casos lo respaldan |
 
