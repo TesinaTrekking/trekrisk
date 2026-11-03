@@ -44,10 +44,10 @@ tests/
 
 ## Workflow
 
-1. Work **one phase at a time** (see `SPEC.md`, section 12) and do not start the next until the current one meets its done criterion.
-2. At the end of each phase: run `pytest` and make a commit following the "Commits" convention.
+1. Work on **one piece at a time** (a feature or ticket from `.scratch/`) and do not start the next until the current one is done.
+2. At the end of each piece: run `pytest` and make a commit following the "Commits" convention.
 3. If a test fails, fix the code, not the test, unless the test's expected value is miscalculated. In that case, explain why.
-4. At the end of each phase, summarize in a few lines what you did and what decisions you made.
+4. At the end of each piece, summarize in a few lines what you did and what decisions you made.
 
 ## Commits
 

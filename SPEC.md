@@ -1,7 +1,7 @@
 # SPEC – Análisis probabilístico del clima para planificar salidas de trekking
 
 **Asignatura:** Estadística y Probabilidad Aplicada (ISAUI / Universidad Provincial de Córdoba, Sede Villa Carlos Paz).
-**Estado:** todas las decisiones están cerradas. Este documento se implementa por fases (sección 12).
+**Estado:** implementada. Este documento es la referencia de diseño y la documentación del sistema tal como quedó; las decisiones están cerradas.
 
 ---
 
@@ -30,7 +30,7 @@ De apoyo: estadística descriptiva básica y una recomendación final por zona y
 
 **Dentro:** datos de archivo en CSV (la descarga queda como registro de procedencia), los 8 contenidos, estadística descriptiva, umbrales editables, recomendación, interfaz web, pruebas de `core/`.
 
-**Fuera (no implementar):** incidentes, pronóstico, regresión, inferencia (intervalos, tests), base de datos, login, despliegue, interfaz de consola/CLI, integración con la app de gestión de trekking, ajuste por altitud de las cumbres.
+**Fuera de alcance:** incidentes, pronóstico, regresión, inferencia (intervalos, tests), base de datos, login, despliegue, interfaz de consola/CLI, integración con la app de gestión de trekking, ajuste por altitud de las cumbres.
 
 Se ejecuta desde la consola con `streamlit run app.py`, y eso cumple el mínimo de la consigna. No se hace un modo CLI aparte.
 
@@ -50,7 +50,7 @@ Se ejecuta desde la consola con `streamlit run app.py`, y eso cumple el mínimo 
 | `pan_de_azucar` | Pan de Azúcar | -31.24 | -64.46 |
 | `los_gigantes` | Los Gigantes | -31.57 | -64.80 |
 
-**Variables diarias a pedir** (parámetro `daily`): `precipitation_sum`, `wind_speed_10m_max`, `wind_gusts_10m_max`, `temperature_2m_max`, `temperature_2m_min`. Zona horaria: `America/Argentina/Cordoba`. Unidades: mm, km/h y °C. **Verificar nombres exactos y unidades en la documentación de Open-Meteo antes de implementar.**
+**Variables diarias a pedir** (parámetro `daily`): `precipitation_sum`, `wind_speed_10m_max`, `wind_gusts_10m_max`, `temperature_2m_max`, `temperature_2m_min`. Zona horaria: `America/Argentina/Cordoba`. Unidades: mm, km/h y °C.
 
 **Respuesta esperada:** JSON con un objeto `daily` que tiene la lista `time` y una lista por cada variable pedida.
 
@@ -143,7 +143,7 @@ Independencia:            A y B independientes  ⇔  P(A ∩ B) = P(A) · P(B)
 
 ## 8. Contratos de los módulos (`core/`)
 
-Firmas orientativas. Mantener los nombres y las formas de retorno, para que el tablero y las pruebas dependan de ellos.
+Firmas de los módulos tal como están implementados. El tablero y las pruebas dependen de estos nombres y formas de retorno.
 
 ```python
 # core/config.py
@@ -310,19 +310,7 @@ Usar DataFrames chicos construidos a mano, sin red. La descarga se prueba con un
 - **Datos:** `validar` detecta nulos, filas faltantes y fechas duplicadas; cada CSV real tiene 1.826 filas sin nulos.
 - **Interpretación:** los textos incluyen el valor, los casos y la advertencia de poca muestra cuando corresponde.
 
-## 12. Plan de implementación por fases
-
-Hacer una fase por vez. Al cerrar cada una: `pytest` en verde y un commit.
-
-| Fase | Entregable | Criterio de terminado |
-| --- | --- | --- |
-| 1. Datos | `config.py`, `api.py`, `datos.py`, `requirements.txt`, los 5 CSV en `data/` | Cada CSV tiene 1.826 filas sin nulos y `validar` no informa problemas |
-| 2. Eventos y probabilidad | `eventos.py`, `probabilidad.py` y sus pruebas | Las pruebas con casos calculados a mano pasan |
-| 3. Simulación e interpretación | `simulacion.py`, `interpretacion.py` y sus pruebas | Misma semilla, mismo resultado; cada resultado tiene su texto |
-| 4. Interfaz | `app.py`, `interfaz/`, tema, barra lateral y el tablero | El tablero responde en menos de 2 s y sigue los filtros y umbrales |
-| 5. Cierre | `README.md` (instalación, uso, fuente de datos, limitaciones, qué no se usa y por qué) | Se puede instalar y ejecutar desde cero siguiendo el README |
-
-## 13. Decisiones cerradas
+## 12. Decisiones cerradas
 
 | Tema | Decisión |
 | --- | --- |
@@ -332,9 +320,8 @@ Hacer una fase por vez. Al cerrar cada una: `pytest` en verde y un commit.
 | Altitud de las cumbres en la API | No se informa en esta versión; mejora futura |
 | Datos | Solo reales; no se simulan |
 | Interfaz | Solo web en Streamlit; sin consola |
-| Equipo | Desarrolla una sola persona por ahora; el reparto de roles se define más adelante |
 
-## 14. Mejoras futuras (no implementar ahora)
+## 13. Mejoras futuras
 
 - Informar la altitud de cada cumbre a la API para ajustar la temperatura.
 - Intervalo de confianza para la proporción de días aptos.
