@@ -80,7 +80,7 @@ Zonas:
 ## Limitaciones
 
 - La grilla del reanálisis es del orden de 10 a 25 km: zonas cercanas pueden dar valores casi idénticos y el **microclima de cumbre no queda capturado**.
-- No se informa la altitud de las cumbres a la API ni se ajusta la temperatura por altitud.
+- No se informa la altitud de las cumbres a la API. Open-Meteo ajusta la temperatura a la altitud del terreno en las coordenadas pedidas, que queda por debajo de la cumbre: las temperaturas están sesgadas hacia el calor (entre 1 y 2,5 °C en la mayoría de las zonas y hasta unos 6 °C en la Quebrada del Condorito, cuyas coordenadas caen en el valle), lo que afecta sobre todo a las heladas.
 - Las probabilidades frecuenciales son estimaciones basadas en 5 años: suponen que el clima futuro se comporta como el registrado. Las combinaciones zona-mes se apoyan en unos 150 días cada una.
 - Los umbrales de día apto no fueron validados con guías de trekking; son editables para probar alternativas.
 - El análisis es descriptivo: no es un pronóstico del tiempo.
