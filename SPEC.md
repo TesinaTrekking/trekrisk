@@ -1,6 +1,6 @@
 # SPEC – Análisis probabilístico del clima para planificar salidas de trekking
 
-**Asignatura:** Estadística y Probabilidad Aplicada (ISAU / Universidad Provincial de Córdoba, Sede Villa Carlos Paz).
+**Asignatura:** Estadística y Probabilidad Aplicada (ISAUI / Universidad Provincial de Córdoba, Sede Villa Carlos Paz).
 **Estado:** todas las decisiones están cerradas. Este documento se implementa por fases (sección 12).
 
 ---
